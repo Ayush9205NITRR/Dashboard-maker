@@ -77,8 +77,22 @@ def save_to_history(entry: dict):
 # ==========================================
 def load_csv(uploaded_file) -> pd.DataFrame:
     df = pd.read_csv(uploaded_file, dtype=str).fillna("")
-    # Strip leading/trailing whitespace from all cells
+    # Strip whitespace from all string cells
     df = df.apply(lambda col: col.str.strip() if col.dtype == object else col)
+
+    # FIX: Deduplicate column names — Kylas exports often have repeated headers
+    # e.g. two columns both "Owner" → renamed to "Owner", "Owner_2"
+    seen = {}
+    new_cols = []
+    for col in df.columns:
+        col_clean = str(col).strip()
+        if col_clean in seen:
+            seen[col_clean] += 1
+            new_cols.append(f"{col_clean}_{seen[col_clean]}")
+        else:
+            seen[col_clean] = 1
+            new_cols.append(col_clean)
+    df.columns = new_cols
 
     # Auto-rename common Kylas export column names
     rename_map = {}
@@ -99,6 +113,9 @@ def load_csv(uploaded_file) -> pd.DataFrame:
 
     if rename_map:
         df.rename(columns=rename_map, inplace=True)
+
+    # Final safety: all column names must be unique strings
+    df.columns = pd.Index([str(c) for c in df.columns])
 
     return df
 
