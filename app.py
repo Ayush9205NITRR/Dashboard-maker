@@ -77,6 +77,8 @@ def save_to_history(entry: dict):
 # ==========================================
 def load_csv(uploaded_file) -> pd.DataFrame:
     df = pd.read_csv(uploaded_file, dtype=str).fillna("")
+    # Strip leading/trailing whitespace from all cells
+    df = df.apply(lambda col: col.str.strip() if col.dtype == object else col)
 
     # Auto-rename common Kylas export column names
     rename_map = {}
@@ -101,7 +103,19 @@ def load_csv(uploaded_file) -> pd.DataFrame:
     return df
 
 def get_analyzable_cols(df: pd.DataFrame) -> list:
-    return [c for c in df.columns if c not in EXCLUDE_COLS and 2 <= df[c].nunique() <= 50]
+    """Safely find categorical columns — coerces to str first to avoid
+    ValueError on mixed-type / list-cell columns in large Kylas exports."""
+    result = []
+    for c in df.columns:
+        if c in EXCLUDE_COLS:
+            continue
+        try:
+            n = df[c].astype(str).nunique()
+            if 2 <= n <= 50:
+                result.append(c)
+        except Exception:
+            continue
+    return result
 
 # ==========================================
 # GEMINI
@@ -167,12 +181,12 @@ def render_chart(viz_df: pd.DataFrame, field: str, graph_type: str, height: int 
 def apply_mapping(df: pd.DataFrame, field: str, mapping: dict):
     df  = df.copy()
     col = f"_std_{field}"
-    df[col] = df[field].astype(str).map(mapping).fillna("Other")
+    df[col] = df[field].astype(str).replace("nan", "").map(mapping).fillna("Other")
     return df, col
 
 def render_slicer(df: pd.DataFrame, entity: str, gemini_key: str,
                   level: int = 1, parent_label: str = ""):
-    if df is None or df.empty:
+    if df is None or len(df) == 0:
         st.info("No records in this slice.")
         return
 
@@ -205,7 +219,7 @@ def render_slicer(df: pd.DataFrame, entity: str, gemini_key: str,
     result_key = f"result_{uid}"
 
     if run:
-        raw_counts = {str(k): int(v) for k, v in df[field].value_counts().items()}
+        raw_counts = {str(k): int(v) for k, v in df[field].astype(str).value_counts().items()}
         with st.spinner(f"🧠 Gemini analyzing {field}..."):
             result = call_gemini(gemini_key, entity, field, raw_counts)
         if result:
