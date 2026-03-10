@@ -17,31 +17,32 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# 🛠️ CHANGED: CSS updated for White Background while keeping typography intact
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
-html, body, [class*="css"] { font-family: 'IBM Plex Sans', sans-serif; background-color: #0d0f12; color: #e2e8f0; }
-.stApp { background-color: #0d0f12; }
-[data-testid="stSidebar"] { background-color: #111418 !important; border-right: 1px solid #1e2530; }
-.intel-card { background: #151a22; border: 1px solid #1e2b3c; border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; }
+html, body, [class*="css"] { font-family: 'IBM Plex Sans', sans-serif; background-color: #ffffff; color: #1e293b; }
+.stApp { background-color: #ffffff; }
+[data-testid="stSidebar"] { background-color: #f8fafc !important; border-right: 1px solid #e2e8f0; }
+.intel-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 .intel-card:hover { border-color: #2a7aff; transition: border-color 0.2s; }
 .metric-row { display: flex; gap: 12px; margin-bottom: 20px; }
-.metric-box { flex: 1; background: #151a22; border: 1px solid #1e2b3c; border-radius: 6px; padding: 16px; text-align: center; }
+.metric-box { flex: 1; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 .metric-box .val { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: #2a7aff; }
 .metric-box .lbl { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-.slice-header { background: #0d1a2d; border: 1px solid #1e3a5f; border-left: 3px solid #2a7aff; border-radius: 6px; padding: 10px 16px; margin: 16px 0 8px 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
-.slice-l2 { border-left-color: #8b5cf6 !important; background: #150d2d !important; border-color: #3b1f6b !important; }
-.slice-l3 { border-left-color: #f59e0b !important; background: #1a1200 !important; border-color: #4a3000 !important; }
-h1, h2, h3 { font-family: 'IBM Plex Mono', monospace !important; }
-h1 { color: #f1f5f9 !important; font-size: 22px !important; }
+.slice-header { background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #2a7aff; border-radius: 6px; padding: 10px 16px; margin: 16px 0 8px 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+.slice-l2 { border-left-color: #8b5cf6 !important; background: #f8fafc !important; border-color: #e2e8f0 !important; }
+.slice-l3 { border-left-color: #f59e0b !important; background: #f8fafc !important; border-color: #e2e8f0 !important; }
+h1, h2, h3 { font-family: 'IBM Plex Mono', monospace !important; color: #0f172a !important; }
+h1 { font-size: 22px !important; }
 .stButton > button { background: #2a7aff !important; color: white !important; border: none !important; border-radius: 4px !important; font-family: 'IBM Plex Mono', monospace !important; font-size: 13px !important; font-weight: 600 !important; padding: 8px 20px !important; width: 100%; }
 .stButton > button:hover { background: #1a6aef !important; }
-.stTextInput input { background: #151a22 !important; border: 1px solid #1e2b3c !important; color: #e2e8f0 !important; font-family: 'IBM Plex Mono', monospace !important; }
+.stTextInput input { background: #ffffff !important; border: 1px solid #cbd5e1 !important; color: #0f172a !important; font-family: 'IBM Plex Mono', monospace !important; }
 .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
-.tag-blue   { background: #1a3a6b; color: #60a5fa; }
-.tag-purple { background: #2d1b5e; color: #a78bfa; }
-.tag-amber  { background: #3b2a0a; color: #fbbf24; }
-.divider { border: none; border-top: 1px solid #1e2530; margin: 20px 0; }
+.tag-blue   { background: #eff6ff; color: #2563eb; }
+.tag-purple { background: #f3e8ff; color: #9333ea; }
+.tag-amber  { background: #fffbeb; color: #d97706; }
+.divider { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
 #MainMenu, footer, header { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
@@ -166,12 +167,13 @@ Return ONLY valid JSON:
         return None
 
 # ==========================================
-# CHART RENDERER
+# CHART RENDERER (KEPT DARK AS REQUESTED)
 # ==========================================
 def render_chart(viz_df: pd.DataFrame, field: str, graph_type: str, height: int = 300):
     if viz_df.empty:
         st.info("No data to display.")
         return
+    # Dark layout for charts remains untouched!
     layout = dict(
         paper_bgcolor="#151a22", plot_bgcolor="#151a22",
         font=dict(family="IBM Plex Mono", color="#94a3b8"),
@@ -220,8 +222,8 @@ def render_slicer(df: pd.DataFrame, entity: str, gemini_key: str,
     st.markdown(f"""
     <div class="slice-header {css_extra}">
         <span style="color:{color};font-weight:600;">▶ LEVEL {level}</span>&nbsp;&nbsp;
-        <span style="color:#94a3b8;">{entity}{crumb}</span>&nbsp;&nbsp;
-        <span style="color:#475569;font-size:11px;">{len(df):,} records</span>
+        <span style="color:#64748b;">{entity}{crumb}</span>&nbsp;&nbsp;
+        <span style="color:#94a3b8;font-size:11px;">{len(df):,} records</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -295,7 +297,7 @@ def render_slicer(df: pd.DataFrame, entity: str, gemini_key: str,
     if level < 3:
         categories = sorted(viz_df[field].tolist())
         st.markdown("""
-        <div style="font-family:'IBM Plex Mono';font-size:11px;color:#475569;
+        <div style="font-family:'IBM Plex Mono';font-size:11px;color:#64748b;
                     letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">
             Drill into a category ↓
         </div>
@@ -382,7 +384,7 @@ with st.sidebar:
                     nuniq = df_up[c].nunique()
                     st.markdown(f"<span style='font-family:IBM Plex Mono;font-size:11px;'>"
                                 f"{'🔬 ' if 2<=nuniq<=50 else '   '}{c} "
-                                f"<span style='color:#475569;'>({nuniq} unique)</span></span>",
+                                f"<span style='color:#64748b;'>({nuniq} unique)</span></span>",
                                 unsafe_allow_html=True)
         except Exception as e:
             st.error(f"CSV read error: {e}")
@@ -392,8 +394,8 @@ with st.sidebar:
         st.markdown("""
         <div style="font-family:'IBM Plex Mono';font-size:11px;color:#64748b;line-height:1.8;">
         1. Open Kylas CRM<br>
-        2. Go to <b style='color:#94a3b8;'>Leads / Contacts / Companies / Deals</b><br>
-        3. Click <b style='color:#94a3b8;'>Export</b> → Download CSV<br>
+        2. Go to <b style='color:#1e293b;'>Leads / Contacts / Companies / Deals</b><br>
+        3. Click <b style='color:#1e293b;'>Export</b> → Download CSV<br>
         4. Upload the CSV here
         </div>
         """, unsafe_allow_html=True)
@@ -410,7 +412,7 @@ with tab1:
         st.markdown(f"""
         <div class="intel-card" style="margin-bottom:24px;">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-                <span style="font-family:'IBM Plex Mono';font-size:16px;font-weight:600;">
+                <span style="font-family:'IBM Plex Mono';font-size:16px;font-weight:600;color:#0f172a;">
                     {ent} — Drill-Down Analysis
                 </span>
                 <div>
@@ -437,7 +439,7 @@ with tab1:
         st.markdown("""
         <div style="text-align:center;padding:80px 0;">
             <div style="font-size:48px;margin-bottom:16px;">🔑</div>
-            <div style="font-family:'IBM Plex Mono';font-size:15px;color:#334155;">
+            <div style="font-family:'IBM Plex Mono';font-size:15px;color:#64748b;">
                 Enter your Gemini API key in the sidebar
             </div>
         </div>
@@ -447,10 +449,10 @@ with tab1:
         st.markdown("""
         <div style="text-align:center;padding:80px 0;">
             <div style="font-size:48px;margin-bottom:16px;">📁</div>
-            <div style="font-family:'IBM Plex Mono';font-size:15px;color:#334155;">
+            <div style="font-family:'IBM Plex Mono';font-size:15px;color:#64748b;">
                 Upload a CSV from the sidebar to begin
             </div>
-            <div style="font-family:'IBM Plex Mono';font-size:12px;color:#1e3a5f;margin-top:8px;">
+            <div style="font-family:'IBM Plex Mono';font-size:12px;color:#94a3b8;margin-top:8px;">
                 Kylas → Export CSV → Upload here
             </div>
         </div>
@@ -484,7 +486,7 @@ with tab3:
     with col_h1:
         st.markdown(
             f"**{len(history)} runs saved** &nbsp;·&nbsp;"
-            f"<span style='color:#4ade80;font-size:12px;'>🔒 API keys never stored</span>",
+            f"<span style='color:#10b981;font-size:12px;'>🔒 API keys never stored</span>",
             unsafe_allow_html=True
         )
     with col_h2:
@@ -522,13 +524,14 @@ with tab3:
                         hist_df.columns = [entry["field"], "Count"]
                         total_h = hist_df["Count"].sum()
 
+                        # 🛠️ CHANGED: Inline styles for metric boxes in history for light theme
                         st.markdown(f"""
                         <div style="display:flex;gap:12px;margin-bottom:12px;">
-                            <div style="flex:1;background:#151a22;border:1px solid #1e2b3c;border-radius:6px;padding:12px;text-align:center;">
+                            <div style="flex:1;background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;padding:12px;text-align:center;box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                                 <div style="font-family:'IBM Plex Mono';font-size:22px;font-weight:600;color:{color};">{total_h:,}</div>
                                 <div style="font-size:10px;color:#64748b;">RECORDS</div>
                             </div>
-                            <div style="flex:1;background:#151a22;border:1px solid #1e2b3c;border-radius:6px;padding:12px;text-align:center;">
+                            <div style="flex:1;background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;padding:12px;text-align:center;box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                                 <div style="font-family:'IBM Plex Mono';font-size:22px;font-weight:600;color:{color};">{len(hist_df)}</div>
                                 <div style="font-size:10px;color:#64748b;">CATEGORIES</div>
                             </div>
