@@ -5,9 +5,6 @@ import plotly.express as px
 import json
 import os
 import re
-import sqlite3
-import subprocess
-import sys
 from datetime import datetime
 
 # ==========================================
@@ -32,9 +29,9 @@ html, body, [class*="css"] { font-family: 'IBM Plex Sans', sans-serif; backgroun
 .metric-box { flex: 1; background: #151a22; border: 1px solid #1e2b3c; border-radius: 6px; padding: 16px; text-align: center; }
 .metric-box .val { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: #2a7aff; }
 .metric-box .lbl { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-.slice-header { background: #0d1a2d; border: 1px solid #1e3a5f; border-left: 3px solid #2a7aff; border-radius: 6px; padding: 10px 16px; margin: 16px 0 8px 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #60a5fa; }
-.slice-l2 { border-left-color: #8b5cf6 !important; background: #150d2d !important; border-color: #3b1f6b !important; color: #a78bfa !important; }
-.slice-l3 { border-left-color: #f59e0b !important; background: #1a1200 !important; border-color: #4a3000 !important; color: #fbbf24 !important; }
+.slice-header { background: #0d1a2d; border: 1px solid #1e3a5f; border-left: 3px solid #2a7aff; border-radius: 6px; padding: 10px 16px; margin: 16px 0 8px 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+.slice-l2 { border-left-color: #8b5cf6 !important; background: #150d2d !important; border-color: #3b1f6b !important; }
+.slice-l3 { border-left-color: #f59e0b !important; background: #1a1200 !important; border-color: #4a3000 !important; }
 h1, h2, h3 { font-family: 'IBM Plex Mono', monospace !important; }
 h1 { color: #f1f5f9 !important; font-size: 22px !important; }
 .stButton > button { background: #2a7aff !important; color: white !important; border: none !important; border-radius: 4px !important; font-family: 'IBM Plex Mono', monospace !important; font-size: 13px !important; font-weight: 600 !important; padding: 8px 20px !important; width: 100%; }
@@ -53,7 +50,6 @@ h1 { color: #f1f5f9 !important; font-size: 22px !important; }
 # CONSTANTS
 # ==========================================
 HISTORY_FILE = "crm_intelligence_history.json"
-DB_FILE      = "kylas_cache.db"
 ENTITY_LIST  = ["Leads", "Contacts", "Companies", "Deals"]
 EXCLUDE_COLS = {"ID", "Name", "Emails", "Phones", "Created At", "Amount", "Updated At"}
 CHART_COLORS = ["#2a7aff","#8b5cf6","#f59e0b","#10b981","#ef4444","#ec4899","#06b6d4","#84cc16"]
@@ -69,83 +65,39 @@ def load_history():
     return []
 
 def save_to_history(entry: dict):
-    # Strip any accidental API key fields before writing to disk
-    BANNED_KEYS = {"kylas_key", "gemini_key", "api_key", "key", "token", "secret"}
-    safe_entry  = {k: v for k, v in entry.items() if k.lower() not in BANNED_KEYS}
-    history = load_history()
-    history.insert(0, safe_entry)
-    history = history[:100]
+    BANNED = {"kylas_key", "gemini_key", "api_key", "key", "token", "secret"}
+    safe   = {k: v for k, v in entry.items() if k.lower() not in BANNED}
+    hist   = load_history()
+    hist.insert(0, safe)
     with open(HISTORY_FILE, "w") as f:
-        json.dump(history, f, indent=2)
+        json.dump(hist[:100], f, indent=2)
 
 # ==========================================
-# CACHE HELPERS
+# CSV LOADER
 # ==========================================
-def load_from_cache(entity: str) -> list:
-    if not os.path.exists(DB_FILE):
-        return []
-    conn = sqlite3.connect(DB_FILE)
-    rows = conn.execute("SELECT data FROM records WHERE entity=?", (entity,)).fetchall()
-    conn.close()
-    return [json.loads(r[0]) for r in rows]
+def load_csv(uploaded_file) -> pd.DataFrame:
+    df = pd.read_csv(uploaded_file, dtype=str).fillna("")
 
-def get_cache_meta() -> dict:
-    if not os.path.exists(DB_FILE):
-        return {}
-    conn = sqlite3.connect(DB_FILE)
-    rows = conn.execute("SELECT entity, last_sync, total_records FROM sync_meta").fetchall()
-    conn.close()
-    return {r[0]: {"last_sync": r[1], "total": r[2]} for r in rows}
+    # Auto-rename common Kylas export column names
+    rename_map = {}
+    for col in df.columns:
+        low = col.lower().strip()
+        if low in ("id","lead id","contact id","company id","deal id"):
+            rename_map[col] = "ID"
+        elif low in ("name","full name","company name","lead name","contact name"):
+            rename_map[col] = "Name"
+        elif "employee" in low:
+            rename_map[col] = "Employee Size"
+        elif "industry" in low:
+            rename_map[col] = "Industry"
+        elif "pipeline stage" in low:
+            rename_map[col] = "Pipeline Stage"
+        elif col.lower() == "owner":
+            rename_map[col] = "Owner"
 
-def trigger_sync(api_key: str, entity: str):
-    result = subprocess.run(
-        [sys.executable, "kylas_sync.py", "--entity", entity, "--key", api_key],
-        capture_output=True, text=True
-    )
-    return result.stdout + result.stderr
+    if rename_map:
+        df.rename(columns=rename_map, inplace=True)
 
-# ==========================================
-# DATA FLATTENER (for cache records)
-# ==========================================
-def _val(node, key="name"):
-    return node.get(key) if isinstance(node, dict) else None
-
-def _join_list(items, key="value"):
-    if not items: return None
-    return ", ".join(str(i.get(key,"")).strip() for i in items if i.get(key))
-
-def _cf_label(k):
-    s = re.sub(r'^cf', '', k)
-    s = re.sub(r'([A-Z])', r' \1', s)
-    return s.strip().title()
-
-def flatten_records(records: list) -> pd.DataFrame:
-    flat = []
-    for r in records:
-        d = {
-            "ID":             r.get("id"),
-            "Name":           r.get("name") or f"{r.get('firstName','')} {r.get('lastName','')}".strip() or None,
-            "Owner":          _val(r.get("ownedBy") or r.get("assignedTo")),
-            "Pipeline":       _val(r.get("pipeline")),
-            "Pipeline Stage": _val(r.get("pipelineStage")),
-            "Industry":       _val(r.get("industry")),
-            "Employee Size":  _val(r.get("numberOfEmployees")),
-            "Emails":         _join_list(r.get("emails"), "value"),
-            "Phones":         _join_list(r.get("phoneNumbers"), "value"),
-            "Amount":         r.get("amount"),
-            "Created At":     r.get("createdAt","")[:10] if r.get("createdAt") else None,
-        }
-        for k, v in (r.get("customFieldValues") or {}).items():
-            label = _cf_label(k)
-            if isinstance(v, list) and v and isinstance(v[0], dict):
-                d[label] = ", ".join(i.get("name","") for i in v if i.get("name"))
-            elif isinstance(v, dict):
-                d[label] = v.get("name") or v.get("value")
-            else:
-                d[label] = v
-        flat.append(d)
-    df = pd.DataFrame(flat)
-    df.dropna(axis=1, how="all", inplace=True)
     return df
 
 def get_analyzable_cols(df: pd.DataFrame) -> list:
@@ -185,7 +137,7 @@ Return ONLY valid JSON:
 # ==========================================
 # CHART RENDERER
 # ==========================================
-def render_chart(viz_df: pd.DataFrame, field: str, graph_type: str, height: int = 320):
+def render_chart(viz_df: pd.DataFrame, field: str, graph_type: str, height: int = 300):
     if viz_df.empty:
         st.info("No data to display.")
         return
@@ -213,8 +165,8 @@ def render_chart(viz_df: pd.DataFrame, field: str, graph_type: str, height: int 
 # DRILL-DOWN SLICER — recursive, max 3 levels
 # ==========================================
 def apply_mapping(df: pd.DataFrame, field: str, mapping: dict):
-    df   = df.copy()
-    col  = f"_std_{field}"
+    df  = df.copy()
+    col = f"_std_{field}"
     df[col] = df[field].astype(str).map(mapping).fillna("Other")
     return df, col
 
@@ -229,15 +181,15 @@ def render_slicer(df: pd.DataFrame, entity: str, gemini_key: str,
         st.info("No categorical columns available to slice further.")
         return
 
-    color      = LEVEL_COLORS[level - 1]
-    css_extra  = f"slice-l{level}" if level > 1 else ""
-    breadcrumb = f"  →  {parent_label}" if parent_label else ""
-    uid        = f"l{level}_{abs(hash(parent_label)) % 100000}"
+    color     = LEVEL_COLORS[level - 1]
+    css_extra = f"slice-l{level}" if level > 1 else ""
+    crumb     = f"  →  {parent_label}" if parent_label else ""
+    uid       = f"l{level}_{abs(hash(parent_label)) % 100000}"
 
     st.markdown(f"""
     <div class="slice-header {css_extra}">
         <span style="color:{color};font-weight:600;">▶ LEVEL {level}</span>&nbsp;&nbsp;
-        <span style="color:#94a3b8;">{entity}{breadcrumb}</span>&nbsp;&nbsp;
+        <span style="color:#94a3b8;">{entity}{crumb}</span>&nbsp;&nbsp;
         <span style="color:#475569;font-size:11px;">{len(df):,} records</span>
     </div>
     """, unsafe_allow_html=True)
@@ -298,7 +250,7 @@ def render_slicer(df: pd.DataFrame, entity: str, gemini_key: str,
     </div>
     """, unsafe_allow_html=True)
 
-    render_chart(viz_df, field, result.get("graph_type","Bar Chart"), height=280)
+    render_chart(viz_df, field, result.get("graph_type", "Bar Chart"), height=280)
 
     if result.get("insight"):
         st.markdown(f"""
@@ -311,7 +263,7 @@ def render_slicer(df: pd.DataFrame, entity: str, gemini_key: str,
     # ── Drill Down (max level 3) ──────────────────────────
     if level < 3:
         categories = sorted(viz_df[field].tolist())
-        st.markdown(f"""
+        st.markdown("""
         <div style="font-family:'IBM Plex Mono';font-size:11px;color:#475569;
                     letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">
             Drill into a category ↓
@@ -342,8 +294,8 @@ def render_slicer(df: pd.DataFrame, entity: str, gemini_key: str,
         if drill_state in st.session_state:
             drilled_df, drill_label = st.session_state[drill_state]
             new_parent = f"{parent_label} → {field}: {drill_label}" if parent_label else f"{field}: {drill_label}"
+            next_color = LEVEL_COLORS[level]
 
-            next_color = LEVEL_COLORS[level]   # color for next level
             st.markdown(f"<div style='margin-top:8px;padding-left:16px;border-left:2px solid {next_color}33;'>",
                         unsafe_allow_html=True)
             render_slicer(drilled_df, entity, gemini_key, level=level + 1, parent_label=new_parent)
@@ -353,8 +305,8 @@ def render_slicer(df: pd.DataFrame, entity: str, gemini_key: str,
 # SESSION STATE INIT
 # ==========================================
 for key, default in [
-    ("kylas_key", ""), ("gemini_key", ""),
-    ("keys_set", False), ("df", None), ("entity", None),
+    ("gemini_key", ""), ("gemini_set", False),
+    ("df", None), ("entity", None),
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
@@ -366,123 +318,54 @@ with st.sidebar:
     st.markdown("### ⚡ KYLAS INTELLIGENCE")
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
-    # ── Data Source mode picked FIRST so key UI can adapt ──
-    st.markdown("**DATA SOURCE**")
-    entity      = st.selectbox("Module", ENTITY_LIST)
-    source_mode = st.radio("Load from", ["📁 Upload CSV", "🗄 Kylas Cache"], horizontal=True)
-
-    st.markdown('<hr class="divider">', unsafe_allow_html=True)
-
-    # ── API Keys — Kylas key only shown when cache mode ───
-    st.markdown("**API CONFIGURATION**")
-
-    gemini_input = st.text_input("Gemini API Key", type="password",
-                                  value=st.session_state.gemini_key, placeholder="AIza...")
-
-    kylas_input = ""
-    if source_mode == "🗄 Kylas Cache":
-        kylas_input = st.text_input("Kylas API Key", type="password",
-                                     value=st.session_state.kylas_key, placeholder="xxxx:xxxxx")
-
-    if st.button("Save Keys"):
-        if not gemini_input:
-            st.error("Gemini API key required")
-        elif source_mode == "🗄 Kylas Cache" and not kylas_input:
-            st.error("Kylas API key required for cache sync")
-        else:
+    # ── Gemini Key only ───────────────────
+    st.markdown("**GEMINI API KEY**")
+    gemini_input = st.text_input("", type="password",
+                                  value=st.session_state.gemini_key,
+                                  placeholder="AIza...",
+                                  label_visibility="collapsed")
+    if st.button("Save Key"):
+        if gemini_input:
             st.session_state.gemini_key = gemini_input
-            st.session_state.keys_set   = True
-            if kylas_input:
-                st.session_state.kylas_key = kylas_input
-            st.success("✅ Saved to session only — never written to disk")
+            st.session_state.gemini_set = True
+            st.success("✅ Saved to session only")
+        else:
+            st.error("Enter your Gemini API key")
 
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
-    # ── MODE 1: CSV Upload ─────────────────
-    if source_mode == "📁 Upload CSV":
+    # ── CSV Upload ────────────────────────
+    st.markdown("**DATA SOURCE**")
+    entity   = st.selectbox("Module", ENTITY_LIST)
+    uploaded = st.file_uploader(f"Upload {entity} CSV", type=["csv"],
+                                 help="Export from Kylas → Reports → Export CSV")
+
+    if uploaded:
+        try:
+            df_up = load_csv(uploaded)
+            st.session_state.df     = df_up
+            st.session_state.entity = entity
+            st.success(f"✅ {len(df_up):,} rows · {len(df_up.columns)} cols")
+            with st.expander("Columns detected"):
+                for c in df_up.columns:
+                    nuniq = df_up[c].nunique()
+                    st.markdown(f"<span style='font-family:IBM Plex Mono;font-size:11px;'>"
+                                f"{'🔬 ' if 2<=nuniq<=50 else '   '}{c} "
+                                f"<span style='color:#475569;'>({nuniq} unique)</span></span>",
+                                unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"CSV read error: {e}")
+
+    # How to export guide
+    with st.expander("How to export from Kylas?"):
         st.markdown("""
-        <div style="font-size:11px;color:#64748b;font-family:'IBM Plex Mono';margin-bottom:8px;">
-            Export CSV from Kylas → upload here.<br>No API call needed.
+        <div style="font-family:'IBM Plex Mono';font-size:11px;color:#64748b;line-height:1.8;">
+        1. Open Kylas CRM<br>
+        2. Go to <b style='color:#94a3b8;'>Leads / Contacts / Companies / Deals</b><br>
+        3. Click <b style='color:#94a3b8;'>Export</b> → Download CSV<br>
+        4. Upload the CSV here
         </div>
         """, unsafe_allow_html=True)
-
-        uploaded = st.file_uploader(f"Upload {entity} CSV", type=["csv"])
-
-        if uploaded:
-            try:
-                df_up = pd.read_csv(uploaded, dtype=str).fillna("")
-                # Auto-rename common Kylas export headers
-                rename_map = {}
-                for col in df_up.columns:
-                    low = col.lower().strip()
-                    if low in ("id","lead id","contact id","company id","deal id"):
-                        rename_map[col] = "ID"
-                    elif low in ("name","full name","company name","lead name","contact name"):
-                        rename_map[col] = "Name"
-                    elif "employee" in low:
-                        rename_map[col] = "Employee Size"
-                    elif "industry" in low:
-                        rename_map[col] = "Industry"
-                    elif "pipeline stage" in low:
-                        rename_map[col] = "Pipeline Stage"
-                    elif "owner" in low:
-                        rename_map[col] = "Owner"
-                if rename_map:
-                    df_up.rename(columns=rename_map, inplace=True)
-
-                st.session_state.df     = df_up
-                st.session_state.entity = entity
-                st.success(f"✅ {len(df_up):,} rows loaded")
-
-                with st.expander("Columns detected"):
-                    st.write(list(df_up.columns))
-            except Exception as e:
-                st.error(f"Error reading CSV: {e}")
-
-    # ── MODE 2: Kylas Cache ─────────────────
-    else:
-        cache_meta = get_cache_meta()
-        if entity in cache_meta:
-            m    = cache_meta[entity]
-            last = m["last_sync"][:16].replace("T"," ") if m.get("last_sync") else "never"
-            st.markdown(f"""
-            <div style="background:#0d2137;border:1px solid #1e3a5f;border-radius:4px;
-                        padding:10px 12px;margin-bottom:8px;">
-                <span style="font-family:'IBM Plex Mono';font-size:11px;color:#60a5fa;">
-                    CACHE: {m['total']:,} records<br>Last sync: {last}
-                </span>
-            </div>""", unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div style="background:#1a0f0f;border:1px solid #5f1e1e;border-radius:4px;
-                        padding:10px 12px;margin-bottom:8px;">
-                <span style="font-family:'IBM Plex Mono';font-size:11px;color:#f87171;">
-                    NO CACHE — run: python kylas_sync.py --full
-                </span>
-            </div>""", unsafe_allow_html=True)
-
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("⚡ Load"):
-                recs = load_from_cache(entity)
-                if recs:
-                    st.session_state.df     = flatten_records(recs)
-                    st.session_state.entity = entity
-                    st.success(f"✅ {len(recs):,} loaded")
-                else:
-                    st.error("Cache empty")
-        with c2:
-            if st.button("🔄 Sync"):
-                if not st.session_state.keys_set:
-                    st.error("Save keys first")
-                else:
-                    with st.spinner("Syncing..."):
-                        trigger_sync(st.session_state.kylas_key, entity)
-                    recs = load_from_cache(entity)
-                    if recs:
-                        st.session_state.df     = flatten_records(recs)
-                        st.session_state.entity = entity
-                        st.success("Done!")
 
 # ==========================================
 # MAIN AREA
@@ -519,27 +402,35 @@ with tab1:
             parent_label=""
         )
 
-    elif st.session_state.df is None:
+    elif not st.session_state.gemini_key:
         st.markdown("""
-        <div style="text-align:center;padding:80px 0;color:#334155;">
-            <div style="font-size:48px;margin-bottom:16px;">⚡</div>
-            <div style="font-family:'IBM Plex Mono';font-size:15px;color:#1e3a5f;">
-                Upload a CSV or load from cache to begin
-            </div>
-            <div style="font-family:'IBM Plex Mono';font-size:12px;color:#0f1f35;margin-top:8px;">
-                Sidebar → Data Source → Upload CSV
+        <div style="text-align:center;padding:80px 0;">
+            <div style="font-size:48px;margin-bottom:16px;">🔑</div>
+            <div style="font-family:'IBM Plex Mono';font-size:15px;color:#334155;">
+                Enter your Gemini API key in the sidebar
             </div>
         </div>
         """, unsafe_allow_html=True)
-    else:
-        st.warning("Save your Gemini API key in the sidebar to enable analysis.")
+
+    elif st.session_state.df is None:
+        st.markdown("""
+        <div style="text-align:center;padding:80px 0;">
+            <div style="font-size:48px;margin-bottom:16px;">📁</div>
+            <div style="font-family:'IBM Plex Mono';font-size:15px;color:#334155;">
+                Upload a CSV from the sidebar to begin
+            </div>
+            <div style="font-family:'IBM Plex Mono';font-size:12px;color:#1e3a5f;margin-top:8px;">
+                Kylas → Export CSV → Upload here
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ── Tab 2: Data Table ─────────────────────────────────────
 with tab2:
     if st.session_state.df is not None:
         df  = st.session_state.df
         ent = st.session_state.entity or "Data"
-        st.markdown(f"**{ent}** — {len(df):,} records, {len(df.columns)} columns")
+        st.markdown(f"**{ent}** — {len(df):,} records · {len(df.columns)} columns")
 
         show_cols = st.multiselect(
             "Columns to show",
@@ -549,10 +440,10 @@ with tab2:
         if show_cols:
             st.dataframe(df[show_cols], use_container_width=True, height=500)
 
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button("⬇ Download CSV", csv, f"{ent}_kylas.csv", "text/csv")
+        csv_bytes = df.to_csv(index=False).encode("utf-8")
+        st.download_button("⬇ Download CSV", csv_bytes, f"{ent}_export.csv", "text/csv")
     else:
-        st.info("Load data first from the sidebar.")
+        st.info("Upload a CSV from the sidebar first.")
 
 # ── Tab 3: Version History ────────────────────────────────
 with tab3:
@@ -560,9 +451,11 @@ with tab3:
 
     col_h1, col_h2 = st.columns([3, 1])
     with col_h1:
-        st.markdown(f"**{len(history)} runs saved** &nbsp;·&nbsp; "
-                    f"<span style='color:#4ade80;font-size:12px;'>🔒 API keys never stored</span>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            f"**{len(history)} runs saved** &nbsp;·&nbsp;"
+            f"<span style='color:#4ade80;font-size:12px;'>🔒 API keys never stored</span>",
+            unsafe_allow_html=True
+        )
     with col_h2:
         if st.button("🗑 Clear All"):
             if os.path.exists(HISTORY_FILE):
@@ -584,7 +477,7 @@ with tab3:
             breadcrumb = f" → {parent}" if parent else ""
             label      = (f"[{entry.get('timestamp','')}]  "
                           f"{entry.get('entity','')} {breadcrumb} → {entry.get('field','')}  "
-                          f"|  L{level}  |  {entry.get('graph_type','')}")
+                          f"| L{level} | {entry.get('graph_type','')}")
 
             with st.expander(label):
                 mapping    = entry.get("mapping", {})
@@ -596,17 +489,15 @@ with tab3:
                     if rows:
                         hist_df = pd.DataFrame(rows).groupby("_cat", as_index=False)["Count"].sum()
                         hist_df.columns = [entry["field"], "Count"]
-
                         total_h = hist_df["Count"].sum()
+
                         st.markdown(f"""
                         <div style="display:flex;gap:12px;margin-bottom:12px;">
-                            <div class="metric-box" style="background:#151a22;border:1px solid #1e2b3c;
-                                border-radius:6px;padding:12px;text-align:center;flex:1;">
+                            <div style="flex:1;background:#151a22;border:1px solid #1e2b3c;border-radius:6px;padding:12px;text-align:center;">
                                 <div style="font-family:'IBM Plex Mono';font-size:22px;font-weight:600;color:{color};">{total_h:,}</div>
                                 <div style="font-size:10px;color:#64748b;">RECORDS</div>
                             </div>
-                            <div class="metric-box" style="background:#151a22;border:1px solid #1e2b3c;
-                                border-radius:6px;padding:12px;text-align:center;flex:1;">
+                            <div style="flex:1;background:#151a22;border:1px solid #1e2b3c;border-radius:6px;padding:12px;text-align:center;">
                                 <div style="font-family:'IBM Plex Mono';font-size:22px;font-weight:600;color:{color};">{len(hist_df)}</div>
                                 <div style="font-size:10px;color:#64748b;">CATEGORIES</div>
                             </div>
