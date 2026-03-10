@@ -366,28 +366,37 @@ with st.sidebar:
     st.markdown("### ⚡ KYLAS INTELLIGENCE")
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
-    # ── API Keys ──────────────────────────
-    st.markdown("**API CONFIGURATION**")
-    kylas_input  = st.text_input("Kylas API Key",  type="password",
-                                  value=st.session_state.kylas_key, placeholder="xxxx:xxxxx")
-    gemini_input = st.text_input("Gemini API Key", type="password",
-                                  value=st.session_state.gemini_key, placeholder="AIza...")
-
-    if st.button("Save Keys"):
-        if kylas_input and gemini_input:
-            st.session_state.kylas_key  = kylas_input
-            st.session_state.gemini_key = gemini_input
-            st.session_state.keys_set   = True
-            st.success("✅ Saved to session only — never written to disk")
-        else:
-            st.error("Both keys required")
-
-    st.markdown('<hr class="divider">', unsafe_allow_html=True)
-
-    # ── Data Source ────────────────────────
+    # ── Data Source mode picked FIRST so key UI can adapt ──
     st.markdown("**DATA SOURCE**")
     entity      = st.selectbox("Module", ENTITY_LIST)
     source_mode = st.radio("Load from", ["📁 Upload CSV", "🗄 Kylas Cache"], horizontal=True)
+
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+
+    # ── API Keys — Kylas key only shown when cache mode ───
+    st.markdown("**API CONFIGURATION**")
+
+    gemini_input = st.text_input("Gemini API Key", type="password",
+                                  value=st.session_state.gemini_key, placeholder="AIza...")
+
+    kylas_input = ""
+    if source_mode == "🗄 Kylas Cache":
+        kylas_input = st.text_input("Kylas API Key", type="password",
+                                     value=st.session_state.kylas_key, placeholder="xxxx:xxxxx")
+
+    if st.button("Save Keys"):
+        if not gemini_input:
+            st.error("Gemini API key required")
+        elif source_mode == "🗄 Kylas Cache" and not kylas_input:
+            st.error("Kylas API key required for cache sync")
+        else:
+            st.session_state.gemini_key = gemini_input
+            st.session_state.keys_set   = True
+            if kylas_input:
+                st.session_state.kylas_key = kylas_input
+            st.success("✅ Saved to session only — never written to disk")
+
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
     # ── MODE 1: CSV Upload ─────────────────
     if source_mode == "📁 Upload CSV":
