@@ -628,62 +628,62 @@ with tab1:
         )
 
     else:
-        # Show a friendly step-by-step guide based on what's missing
+        # Pre-compute all conditional values BEFORE building HTML
         gemini_done = bool(st.session_state.gemini_key)
         data_done   = st.session_state.df is not None
+        both_done   = gemini_done and data_done
+
+        # Step 1 values
+        s1_bg    = "#dcfce7" if gemini_done else "#dbeafe"
+        s1_color = "#166534" if gemini_done else "#1d4ed8"
+        s1_icon  = "✓"      if gemini_done else "1"
+        s1_title = "Gemini API key saved"    if gemini_done else "Enter your Gemini API key"
+        s1_sub   = "Ready to analyze"        if gemini_done else "Sidebar → Gemini API Key → Save Key"
+
+        # Step 2 values
+        s2_bg    = "#dcfce7" if data_done else "#dbeafe"
+        s2_color = "#166534" if data_done else "#1d4ed8"
+        s2_icon  = "✓"      if data_done else "2"
+        s2_title = "CSV loaded"              if data_done else "Upload your Kylas CSV"
+        s2_sub   = "Data ready"              if data_done else "Sidebar → Upload CSV → Browse files"
+
+        # Step 3 values
+        s3_opacity = "1" if both_done else "0.35"
 
         st.markdown(f"""
-        <div style="max-width:480px;margin:60px auto 0 auto;">
-            <div style="font-family:'IBM Plex Mono';font-size:13px;font-weight:600;
-                        color:#94a3b8;margin-bottom:24px;letter-spacing:1px;">GET STARTED</div>
+        <div style="max-width:460px;margin:60px auto 0 auto;">
+            <div style="font-size:11px;font-weight:700;color:#94a3b8;
+                        letter-spacing:0.1em;text-transform:uppercase;margin-bottom:28px;">
+                Get Started
+            </div>
 
-            <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:20px;">
-                <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
-                    justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;
-                    background:{"#14362b" if gemini_done else "#1a3a6b"};
-                    color:{"#4ade80" if gemini_done else "#60a5fa"};">
-                    {"✓" if gemini_done else "1"}
-                </div>
-                <div>
-                    <div style="font-family:'IBM Plex Mono';font-size:13px;
-                        color:{"#4ade80" if gemini_done else "#e2e8f0"};">
-                        {"Gemini API key saved" if gemini_done else "Enter your Gemini API key"}
-                    </div>
-                    <div style="font-size:11px;color:#475569;margin-top:2px;">
-                        {"Ready to analyze" if gemini_done else "Sidebar → Gemini API Key → Save Key"}
-                    </div>
+            <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:24px;">
+                <div style="min-width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+                    justify-content:center;font-size:13px;font-weight:700;
+                    background:{s1_bg};color:{s1_color};">{s1_icon}</div>
+                <div style="padding-top:4px;">
+                    <div style="font-size:14px;font-weight:600;color:#1e293b;">{s1_title}</div>
+                    <div style="font-size:12px;color:#94a3b8;margin-top:3px;">{s1_sub}</div>
                 </div>
             </div>
 
-            <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:20px;">
-                <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
-                    justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;
-                    background:{"#14362b" if data_done else "#1a3a6b"};
-                    color:{"#4ade80" if data_done else "#60a5fa"};">
-                    {"✓" if data_done else "2"}
-                </div>
-                <div>
-                    <div style="font-family:'IBM Plex Mono';font-size:13px;
-                        color:{"#4ade80" if data_done else "#e2e8f0"};">
-                        {"CSV loaded" if data_done else "Upload your Kylas CSV"}
-                    </div>
-                    <div style="font-size:11px;color:#475569;margin-top:2px;">
-                        {"Data ready" if data_done else "Sidebar → Upload CSV → Browse files"}
-                    </div>
+            <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:24px;">
+                <div style="min-width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+                    justify-content:center;font-size:13px;font-weight:700;
+                    background:{s2_bg};color:{s2_color};">{s2_icon}</div>
+                <div style="padding-top:4px;">
+                    <div style="font-size:14px;font-weight:600;color:#1e293b;">{s2_title}</div>
+                    <div style="font-size:12px;color:#94a3b8;margin-top:3px;">{s2_sub}</div>
                 </div>
             </div>
 
-            <div style="display:flex;align-items:flex-start;gap:16px;opacity:{"1" if (gemini_done and data_done) else "0.3"};">
-                <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
-                    justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;
-                    background:#1a3a6b;color:#60a5fa;">3</div>
-                <div>
-                    <div style="font-family:'IBM Plex Mono';font-size:13px;color:#e2e8f0;">
-                        Pick a field and click Analyze ▶
-                    </div>
-                    <div style="font-size:11px;color:#475569;margin-top:2px;">
-                        Gemini will suggest chart type + group categories
-                    </div>
+            <div style="display:flex;align-items:flex-start;gap:16px;opacity:{s3_opacity};">
+                <div style="min-width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+                    justify-content:center;font-size:13px;font-weight:700;
+                    background:#dbeafe;color:#1d4ed8;">3</div>
+                <div style="padding-top:4px;">
+                    <div style="font-size:14px;font-weight:600;color:#1e293b;">Pick a field and click Analyze</div>
+                    <div style="font-size:12px;color:#94a3b8;margin-top:3px;">Gemini will suggest chart type and group categories</div>
                 </div>
             </div>
         </div>
