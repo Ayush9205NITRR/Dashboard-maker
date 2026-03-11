@@ -19,29 +19,193 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
-html, body, [class*="css"] { font-family: 'IBM Plex Sans', sans-serif; background-color: #0d0f12; color: #e2e8f0; }
-.stApp { background-color: #0d0f12; }
-[data-testid="stSidebar"] { background-color: #111418 !important; border-right: 1px solid #1e2530; }
-.intel-card { background: #151a22; border: 1px solid #1e2b3c; border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; }
-.intel-card:hover { border-color: #2a7aff; transition: border-color 0.2s; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+/* ── Base ── */
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
+}
+.stApp { background-color: #f8fafc; }
+
+/* ── Sidebar ── */
+[data-testid="stSidebar"] {
+    background-color: #ffffff !important;
+    border-right: 1px solid #e2e8f0 !important;
+}
+[data-testid="stSidebar"] * { color: #1e293b !important; }
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] label { color: #64748b !important; font-size: 12px !important; }
+[data-testid="stSidebar"] strong { color: #0f172a !important; font-size: 11px !important;
+    letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* ── Cards ── */
+.intel-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.intel-card:hover { border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59,130,246,0.08); transition: all 0.2s; }
+
+/* ── Metrics ── */
 .metric-row { display: flex; gap: 12px; margin-bottom: 20px; }
-.metric-box { flex: 1; background: #151a22; border: 1px solid #1e2b3c; border-radius: 6px; padding: 16px; text-align: center; }
-.metric-box .val { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; color: #2a7aff; }
-.metric-box .lbl { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-.slice-header { background: #0d1a2d; border: 1px solid #1e3a5f; border-left: 3px solid #2a7aff; border-radius: 6px; padding: 10px 16px; margin: 16px 0 8px 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
-.slice-l2 { border-left-color: #8b5cf6 !important; background: #150d2d !important; border-color: #3b1f6b !important; }
-.slice-l3 { border-left-color: #f59e0b !important; background: #1a1200 !important; border-color: #4a3000 !important; }
-h1, h2, h3 { font-family: 'IBM Plex Mono', monospace !important; }
-h1 { color: #f1f5f9 !important; font-size: 22px !important; }
-.stButton > button { background: #2a7aff !important; color: white !important; border: none !important; border-radius: 4px !important; font-family: 'IBM Plex Mono', monospace !important; font-size: 13px !important; font-weight: 600 !important; padding: 8px 20px !important; width: 100%; }
-.stButton > button:hover { background: #1a6aef !important; }
-.stTextInput input { background: #151a22 !important; border: 1px solid #1e2b3c !important; color: #e2e8f0 !important; font-family: 'IBM Plex Mono', monospace !important; }
-.tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
-.tag-blue   { background: #1a3a6b; color: #60a5fa; }
-.tag-purple { background: #2d1b5e; color: #a78bfa; }
-.tag-amber  { background: #3b2a0a; color: #fbbf24; }
-.divider { border: none; border-top: 1px solid #1e2530; margin: 20px 0; }
+.metric-box {
+    flex: 1;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px 16px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.metric-box .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    color: #2563eb;
+    line-height: 1.2;
+}
+.metric-box .lbl {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+}
+
+/* ── Level headers ── */
+.slice-header {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+    padding: 12px 18px;
+    margin: 20px 0 12px 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: #1e40af;
+}
+.slice-l2 {
+    background: #f5f3ff !important;
+    border-color: #ddd6fe !important;
+    border-left-color: #7c3aed !important;
+    color: #5b21b6 !important;
+}
+.slice-l3 {
+    background: #fffbeb !important;
+    border-color: #fde68a !important;
+    border-left-color: #d97706 !important;
+    color: #92400e !important;
+}
+
+/* ── Tags ── */
+.tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+.tag-blue   { background: #dbeafe; color: #1d4ed8; }
+.tag-purple { background: #ede9fe; color: #6d28d9; }
+.tag-amber  { background: #fef3c7; color: #b45309; }
+
+/* ── Buttons ── */
+.stButton > button {
+    background: #2563eb !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    padding: 9px 20px !important;
+    width: 100%;
+    box-shadow: 0 1px 3px rgba(37,99,235,0.3) !important;
+    transition: all 0.15s !important;
+}
+.stButton > button:hover {
+    background: #1d4ed8 !important;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.35) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── Inputs ── */
+.stTextInput input {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    color: #1e293b !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 13px !important;
+    padding: 8px 12px !important;
+}
+.stTextInput input:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1) !important;
+}
+
+/* ── Selectbox ── */
+.stSelectbox > div > div {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    color: #1e293b !important;
+}
+
+/* ── Tabs ── */
+.stTabs [data-baseweb="tab-list"] {
+    background: #f1f5f9;
+    border-radius: 10px;
+    padding: 4px;
+    gap: 2px;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 7px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+    padding: 8px 16px !important;
+}
+.stTabs [aria-selected="true"] {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+}
+
+/* ── Expanders ── */
+.streamlit-expanderHeader {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    color: #475569 !important;
+    font-weight: 500 !important;
+}
+
+/* ── Divider ── */
+.divider { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
+
+/* ── Headings ── */
+h1 { color: #0f172a !important; font-size: 20px !important; font-weight: 700 !important; }
+h2, h3 { color: #1e293b !important; }
+
+/* ── Dataframe ── */
+.stDataFrame { border: 1px solid #e2e8f0 !important; border-radius: 8px !important; overflow: hidden; }
+
+/* ── Success / Error / Info ── */
+.stSuccess { background: #f0fdf4 !important; border-color: #86efac !important; color: #166534 !important; border-radius: 8px !important; }
+.stError   { background: #fef2f2 !important; border-color: #fca5a5 !important; color: #991b1b !important; border-radius: 8px !important; }
+.stInfo    { background: #eff6ff !important; border-color: #93c5fd !important; color: #1e40af !important; border-radius: 8px !important; }
+
+/* ── Hide branding ── */
 #MainMenu, footer, header { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
@@ -52,8 +216,8 @@ h1 { color: #f1f5f9 !important; font-size: 22px !important; }
 HISTORY_FILE = "crm_intelligence_history.json"
 ENTITY_LIST  = ["Leads", "Contacts", "Companies", "Deals"]
 EXCLUDE_COLS = {"ID", "Name", "Emails", "Phones", "Created At", "Amount", "Updated At"}
-CHART_COLORS = ["#2a7aff","#8b5cf6","#f59e0b","#10b981","#ef4444","#ec4899","#06b6d4","#84cc16"]
-LEVEL_COLORS = ["#2a7aff", "#8b5cf6", "#f59e0b"]
+CHART_COLORS = ["#3b82f6","#8b5cf6","#f59e0b","#10b981","#ef4444","#ec4899","#06b6d4","#84cc16"]
+LEVEL_COLORS = ["#2563eb", "#7c3aed", "#d97706"]
 
 # ==========================================
 # HISTORY — API KEYS NEVER STORED
@@ -185,23 +349,23 @@ def render_chart(viz_df: pd.DataFrame, field: str, graph_type: str, height: int 
         st.info("No data to display.")
         return
     layout = dict(
-        paper_bgcolor="#151a22", plot_bgcolor="#151a22",
-        font=dict(family="IBM Plex Mono", color="#94a3b8"),
+        paper_bgcolor="#ffffff", plot_bgcolor="#ffffff",
+        font=dict(family="Inter", color="#475569", size=12),
         margin=dict(l=20, r=20, t=30, b=20),
         height=height,
     )
     if "Bar" in graph_type:
         fig = px.bar(viz_df, x=field, y="Count", color=field,
-                     color_discrete_sequence=CHART_COLORS, template="plotly_dark")
+                     color_discrete_sequence=CHART_COLORS, template="plotly_white")
         fig.update_layout(**layout, showlegend=False,
-                          xaxis=dict(gridcolor="#1e2530"),
-                          yaxis=dict(gridcolor="#1e2530"))
+                          xaxis=dict(gridcolor="#f1f5f9", linecolor="#e2e8f0", tickfont=dict(color="#64748b")),
+                          yaxis=dict(gridcolor="#f1f5f9", linecolor="#e2e8f0", tickfont=dict(color="#64748b")))
     else:
         hole = 0.45 if "Donut" in graph_type else 0
         fig  = px.pie(viz_df, values="Count", names=field,
-                      color_discrete_sequence=CHART_COLORS, hole=hole, template="plotly_dark")
+                      color_discrete_sequence=CHART_COLORS, hole=hole, template="plotly_white")
         fig.update_layout(**layout)
-        fig.update_traces(textfont_color="#e2e8f0")
+        fig.update_traces(textfont_color="#1e293b", textfont_size=12)
     st.plotly_chart(fig, use_container_width=True)
 
 # ==========================================
@@ -358,7 +522,12 @@ for key, default in [
 # SIDEBAR
 # ==========================================
 with st.sidebar:
-    st.markdown("### ⚡ KYLAS INTELLIGENCE")
+    st.markdown("""
+    <div style="padding:4px 0 12px 0;">
+        <div style="font-size:18px;font-weight:700;color:#0f172a;letter-spacing:-0.3px;">⚡ Kylas Intelligence</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px;">CRM Drill-Down Analyzer</div>
+    </div>
+    """, unsafe_allow_html=True)
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
     # ── Gemini Key only ───────────────────
